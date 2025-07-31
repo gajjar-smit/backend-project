@@ -14,4 +14,13 @@ app.use(express.urlencoded({extended:true,limit:"16kb"}))
 app.use(express.static("public"))
 app.use(cookieParser())
 
+//routes
+//we can export routes here like pro prectice
+import  userRouter from "./routes/user.routes.js"
+
+//routes declaration
+//now router is in other files ,we have to use middlewares
+app.use("/api/v1/users",userRouter)
+
+
 export {app}
