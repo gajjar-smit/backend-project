@@ -1,4 +1,4 @@
-import {v2 as cloudnary} from 'cloudinary'
+import {v2 as cloudinary} from 'cloudinary'
 import fs from 'fs'
 
   cloudinary.config({ 
@@ -13,11 +13,14 @@ const uploadOnCloudinary =async (localFilePath)=>{
     try {
         if(!localFilePath) return null
         //upload file on cloudnary
-        const response= await cloudnary.uploader.upload(localFilePath,{
+        const response= await cloudinary.uploader.upload(localFilePath,{
             resource_type:'auto'
         })
         //file had been uploaded successfull
         console.log('file uploaded on cloudinary succcesfully ',response.url);
+        fs.unlinkSync(localFilePath)//remove mellecious local saved temp file 
+        
+        
         return response;
         
     } catch (error) {

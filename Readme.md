@@ -6,4 +6,11 @@
 <li>Api Testing:- postman</li>
 </ul>
 
+
+exp
+<ul>
+<li>React js</li>
+<li>node backend</li>
+<li>postman</li>
+</ul>
 <!-- <h3> docs of librerys </h3> -->
