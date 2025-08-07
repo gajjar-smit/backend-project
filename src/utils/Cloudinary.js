@@ -7,6 +7,12 @@ import fs from 'fs'
         api_secret:  process.env.CLOUDINARY_API_SCERET 
     });
 
+const getPublicId=(fileurl)=>{
+    const parts=fileurl.split('/')
+    const filname=parts.pop().split('.')[0] 
+    const folder=parts.slice(parts.indexOf("upload")+1).join('/')
+    return `${filname}`
+}
 
 const uploadOnCloudinary =async (localFilePath)=>{
 
@@ -28,17 +34,23 @@ const uploadOnCloudinary =async (localFilePath)=>{
         return null;
     }
 }
-const deleteFromCloudinary=async(localFilePath)=>{
-   try {
-    const response=await cloudinary.uploader.destroy(localFilePath,{
-        resource_type:'auto'
-    })
-    fs.unlinkSync(localFilePath)
-    return response
-   } catch (error) {
-    return null
-   }
-}
+const deleteFromCloudinary = async (publicId) => {
+  try {
+    const realpublicId=getPublicId(publicId)
+     
+    
+    const result = await cloudinary.uploader.destroy(realpublicId, {
+      resource_type: 'image', // or 'video', 'raw' depending on your use case
+      invalidate: true
+    });
+    return result;
+  } catch (error) {
+    console.error("Cloudinary deletion error:", error);
+    return null;
+  }
+};
+
+
 export { 
     uploadOnCloudinary,
     deleteFromCloudinary

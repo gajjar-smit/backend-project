@@ -1,7 +1,7 @@
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from "../utils/ApiError.js"
 import { User } from '../models/User.model.js'
-import { uploadOnCloudinary } from '../utils/Cloudinary.js'
+import { uploadOnCloudinary ,deleteFromCloudinary} from '../utils/Cloudinary.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
 import jwt from "jsonwebtoken"
 import mongoose from 'mongoose'
@@ -203,9 +203,10 @@ try {
         //access refresh token
         //validatet it and give access token
     
+        
         //get ref token
         const incomeingRefreshToken=req.cookies.refreshToken || req.body.refreshToken
-    
+        
         if(!incomeingRefreshToken){
             throw new ApiError(401,"unauthorized request")
         }
@@ -219,17 +220,18 @@ try {
         
         //find user with id
         const user=await User.findById(decodedToken?._id)
-
+        
         if (!user){
             throw new ApiError(401,"invalid Refresh Token")
         }
     
-        if (incomeingRefreshToken != user.refreshToken){
+        if (!(incomeingRefreshToken == user.refreshToken)){
+         
             throw new ApiError(401,
                 "refresh token is expired or used"
             )
         }
-    
+        
         const option={
             httpOnly:true,
             secure:true
@@ -237,7 +239,7 @@ try {
     
         const {newrefreshToken,accessToken}= await genrateAccessAndRefresToken(user._id)
     
-        return req
+        return res
         .status(200)
         .cookie("accessToken",accessToken,option)
         .cookie("refreshToken",newrefreshToken,option)
@@ -256,6 +258,7 @@ try {
 })
 
 const changeCurrentPassword=asyncHandler(async (req,res)=>{
+    console.log("change password is working")
     const {oldPassword,newPassword}=req.body
 
     //getting user from aur middleware
@@ -280,19 +283,22 @@ const changeCurrentPassword=asyncHandler(async (req,res)=>{
 
 const getCurrentUser=asyncHandler(async (req,res)=>{
     return res.status(200)
-    .json(200,req.user,"current user fetched successfully")
+    .json( new ApiResponse(200,req.user,"current user fetched successfully"))
 })
 
 const updateAccountDetails=asyncHandler( async(req,res)=>{
 
+
+    
+    
     //getthering data
     const {fullname,email}=req.body
     if (!fullname && !email){
         throw new ApiError(400,"All field are required")
     }
-
+    
     //getting user and updating it
-    const user=User.findByIdAndUpdate(req.user?._id,{
+    const user=await User.findByIdAndUpdate(req.user?._id,{
         
         $set:{
             fullname,
@@ -301,7 +307,7 @@ const updateAccountDetails=asyncHandler( async(req,res)=>{
     },{
         new:true  //new return you user after updation
     }).select("-password -refreshToken")
-
+     
     return res.status(200)
     .json( new ApiResponse(200,user,"Account Details Updated Succesfuly"))
 })
@@ -313,7 +319,9 @@ const updateUserAvatar=asyncHandler ( async(req,res)=>{
     //replace it with old
 
     //get avatar local path
-    const avatarLocalPath=req.files?.path
+    const avatarLocalPath=req.file?.path
+
+    
 
     //check it
     if (!avatarLocalPath){
@@ -323,7 +331,9 @@ const updateUserAvatar=asyncHandler ( async(req,res)=>{
     //TODO:delete old avatar
     //my attempt to utiliti of remove old avatar
     //holding old avatar info
-    var oldavatar=User.findById(req.user?._id).avatar
+    var oldavatar=await User.findById(req.user?._id)
+     
+    
 
     //upload on cloudninery
     const avatar =await uploadOnCloudinary(avatarLocalPath)
@@ -343,7 +353,7 @@ const updateUserAvatar=asyncHandler ( async(req,res)=>{
     ).select("-password -refreshToken")
 
     //my utility do delete old avatar
-    deleteFromCloudinary(oldavatar)
+    await deleteFromCloudinary(oldavatar.avatar)
 
     //sending res
     res.status(200)
@@ -357,12 +367,15 @@ const updateUserCoverImage=asyncHandler ( async(req,res)=>{
     //replace it with old
 
     //get cover local path
-    const coverImageLocalPath=req.files?.path
+    const coverImageLocalPath=req.file?.path
 
     //check it
     if (!coverImageLocalPath){
         throw new ApiError(400,"cover file is missing")
     }
+    //TODO: my utility
+    //get old cover image
+    var oldcoverimage=await User.findById(req.user?._id)
     
     //upload on cloudninery
     const coverimage =await uploadOnCloudinary(coverImageLocalPath)
@@ -381,6 +394,7 @@ const updateUserCoverImage=asyncHandler ( async(req,res)=>{
         },{new:true}
     ).select("-password -refreshToken")
 
+    await deleteFromCloudinary(oldcoverimage.coverImage)
     //sending res
     res.status(200)
     .json(new ApiResponse(200,user,"Cover Image Updated Successfully"))
@@ -519,4 +533,4 @@ export {
     updateUserCoverImage,
     getUserChannelProfile,
     getWatchHistory
-}
+} 
